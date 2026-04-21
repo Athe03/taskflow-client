@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node test-rls.js"
+    "test": "node test-rls.js",
+    "alice": "node alice-watch.js",
+    "bob": "node bob-actions.js"
   },
   "repository": {
     "type": "git",
