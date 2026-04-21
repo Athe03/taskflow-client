@@ -145,3 +145,4 @@ const task = await createTask(PROJECT_ID, {
 - [ ] Webhook Supabase configuré sur `UPDATE` de tasks
 - [ ] Assignation d'une tâche → notification insérée dans la table `notifications`
 - [ ] Logs visibles : `az functionapp logs tail --name fn-taskflow --resource-group rgtaskflow`
+      ![alt text](journal-img/image-10.png)
