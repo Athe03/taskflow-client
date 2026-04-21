@@ -1,13 +1,17 @@
 import { signIn } from './auth.js'
 import { createTask, updateTaskStatus, addComment } from './tasks.js'
-await signIn('oceane.glaneux@my-digital-school.org', 'M_zgz46e/Q2#sDw')
+
+const { user } = await signIn('oceane.glaneux@my-digital-school.org', 'M_zgz46e/Q2#sDw')
+const BOB_ID = user.id
 const PROJECT_ID = '28830f41-f7cc-4315-909b-53afe1456585'
-console.log('Creating task...')
+
+console.log('Creating task assigned to Bob...')
 const task = await createTask(PROJECT_ID, {
-    title: 'Implémenter le Realtime', priority: 'high',
-    // fileUrl et fileName seraient renseignés après un upload Uploadthing
+    title: 'Implémenter le Realtime',
+    priority: 'high',
+    assignedTo: BOB_ID
 })
-console.log('Task created:', task.id)
+console.log('Task created:', JSON.stringify(task, null, 2))
 await new Promise(r => setTimeout(r, 1000))
 console.log('Updating status...')
 await updateTaskStatus(task.id, 'in_progress')

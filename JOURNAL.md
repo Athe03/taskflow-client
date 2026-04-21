@@ -73,4 +73,37 @@ SELECT 'tasks', count(*) from tasks;
 
 `OUI`
 
-## 🔒 Phase 2 : Authentification & RLS
+## ⚡ Phase 3 : Temps Réel (Realtime)
+
+**Problématique rencontrée** : 
+Alice ne reçoit aucune notification et la souscription au canal `project:ID` affiche un statut `TIMED_OUT` après 30 secondes de tentative de connexion.
+
+**Diagnostic** :
+- Le `TIMED_OUT` au moment du `subscribe` indique que le serveur Supabase refuse ou ignore la demande de connexion au flux de données.
+- **Cause 1 (La plus probable)** : Le service Realtime n'est pas activé globalement ou pour ces tables spécifiques dans le Dashboard Supabase.
+- **Cause 2** : Les tables `tasks` et `comments` ne font pas partie de la publication `supabase_realtime`.
+
+**Action corrective IMPÉRATIVE (SQL Editor Supabase)** :
+Exécutez ce script dans l'onglet SQL de votre dashboard Supabase pour forcer l'activation :
+
+```sql
+-- 1. Créer la publication si elle n'existe pas
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        CREATE PUBLICATION supabase_realtime;
+    END IF;
+END $$;
+
+-- 2. Ajouter les tables à la publication pour le Realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE tasks;
+ALTER PUBLICATION supabase_realtime ADD TABLE comments;
+
+-- 3. (Optionnel) Pour voir les changements complets
+ALTER TABLE tasks REPLICA IDENTITY FULL;
+ALTER TABLE comments REPLICA IDENTITY FULL;
+```
+
+**Validation** :
+- Une fois ces commandes exécutées, relancez `node alice-watch.js`. 
+- Le log devrait afficher : `✅ Successfully subscribed to realtime!`
