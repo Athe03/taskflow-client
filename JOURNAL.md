@@ -49,7 +49,7 @@ SELECT proj.id, 'Connecter Azure', 'todo', 'medium', 'USER-2'::uuid,
 
 - Les 6 tables existent dans Table Editor
 
-![alt text](image.png)
+![alt text](journal-img/image-1.png)
 
 - Le trigger updated_at fonctionne (UPDATE tasks SET title='test' WHERE id=... →
   updated_at change)
@@ -58,7 +58,7 @@ SELECT proj.id, 'Connecter Azure', 'todo', 'medium', 'USER-2'::uuid,
 SELECT id, title, updated_at, created_at from tasks;
 ```
 
-![alt text](image-2.png)
+![alt text](journal-img/image-2.png)
 
 - 2 profils et au moins 3 tâches insérés
 
@@ -67,43 +67,81 @@ UNION ALL
 SELECT 'tasks', count(*) from tasks;
 ```
 
-![alt text](image-1.png)
+![alt text](journal-img/image-3.png)
 
 - Le binôme peut accéder au projet
 
 `OUI`
 
+## 🔐 Phase 2 : Authentification & Row Level Security
+
+**Objectif** : Sécuriser l'accès aux données en fonction de l'utilisateur connecté.
+
+- **Problèmes rencontrés & Résolutions** :
+  - **URL Supabase** : L'URL dans le fichier `.env` contenait `/rest/v1/`, ce qui provoquait des erreurs de connexion. Nous l'avons corrigée en `https://secret.supabase.co`.
+  - **Support ES Modules** : Erreur lors de l'exécution des scripts avec `import`. Nous avons ajouté `"type": "module"` dans le `package.json`.
+  - **Scripts NPM** : Mise à jour du script de test : `"test": "node test-rls.js"`.
+  - **Boucle Infinie RLS** : Une erreur de récursion infinie est survenue sur la table `project_members`. Nous avons résolu le problème en désactivant temporairement le RLS pour cette table spécifique
+    ![alt text](journal-img/image-4.png)
+    ![alt text](journal-img/image-5.png)
+
+* Validation — Phase 2
+
+- Exécution de `npm test` :
+  - Sans authentification : 0 tâches visibles.
+  - Alice authentifiée : Accès à ses tâches (✅).
+  - Tentative de modification sur une tâche de Bob : Refusée (RLS silencieux ou erreur).
+
+![alt text](journal-img/image-6.png)
+
 ## ⚡ Phase 3 : Temps Réel (Realtime)
 
-**Problématique rencontrée** : 
-Alice ne reçoit aucune notification et la souscription au canal `project:ID` affiche un statut `TIMED_OUT` après 30 secondes de tentative de connexion.
+**Objectif** : Synchronisation instantanée entre les membres d'un projet.
 
-**Diagnostic** :
-- Le `TIMED_OUT` au moment du `subscribe` indique que le serveur Supabase refuse ou ignore la demande de connexion au flux de données.
-- **Cause 1 (La plus probable)** : Le service Realtime n'est pas activé globalement ou pour ces tables spécifiques dans le Dashboard Supabase.
-- **Cause 2** : Les tables `tasks` et `comments` ne font pas partie de la publication `supabase_realtime`.
+- **Mise en œuvre** : Activation de `supabase_realtime` pour les tables `tasks` et `comments`.
+- **Validation** :
+  - Lancement de `node alice-watch.js` pour écouter les changements.
+  - Lancement de `node bob-actions.js` pour effectuer des modifications.
+  - Alice reçoit instantanément les notifications de création, modification et ajout de commentaires.
 
-**Action corrective IMPÉRATIVE (SQL Editor Supabase)** :
-Exécutez ce script dans l'onglet SQL de votre dashboard Supabase pour forcer l'activation :
+**Focus Bob Actions** :
+Mise à jour de `bob-actions.js` pour inclure l'assignation automatique des tâches créées :
 
-```sql
--- 1. Créer la publication si elle n'existe pas
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
-        CREATE PUBLICATION supabase_realtime;
-    END IF;
-END $$;
-
--- 2. Ajouter les tables à la publication pour le Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE tasks;
-ALTER PUBLICATION supabase_realtime ADD TABLE comments;
-
--- 3. (Optionnel) Pour voir les changements complets
-ALTER TABLE tasks REPLICA IDENTITY FULL;
-ALTER TABLE comments REPLICA IDENTITY FULL;
+```javascript
+const task = await createTask(PROJECT_ID, {
+  title: "Implémenter le Realtime",
+  priority: "high",
+  assignedTo: BOB_ID, // Attribution explicite à Bob
+});
 ```
 
-**Validation** :
-- Une fois ces commandes exécutées, relancez `node alice-watch.js`. 
-- Le log devrait afficher : `✅ Successfully subscribed to realtime!`
+![alt text](journal-img/image-7.png)
+
+- Validation — Phase 3
+
+* [x] getProjectTasks() retourne les tâches avec profils et comptage de commentaires
+* [x] Compte Uploadthing créé, clés dans .env
+* [x] La colonne file_url existe dans la table tasks
+* [x] Alice reçoit en temps réel les créations de Bob (< 500ms)
+* [x] Les changements de statut arrivent instantanément
+* [x] La présence affiche les 2 utilisateurs simultanément
+
+![alt text](journal-img/image-8.png)
+
+# ☁️ Phase 4 : Azure Functions — Notifications par email
+
+**Objectif** : Automatiser l'envoi d'emails lors de l'assignation d'une tâche via une architecture serverless.
+
+- **Problèmes rencontrés & Résolutions** :
+  - **Région Azure** : La région `westeurope` ne fonctionnait pas pour le déploiement. Nous avons utilisé `spaincentral` à la place.
+    ![alt text](journal-img/image-9.png)
+
+  - **Nom du Stockage** : Le nom de compte de stockage `stgtaskflow` était déjà utilisé globalement. Nous avons opté pour `stgtaskflow1`.
+
+* Validation — Phase 4
+
+- [ ] Compte Resend créé, clé API dans `.env` et dans les settings Azure
+- [ ] Function App `fn-taskflow` déployé (visible dans le portail Azure)
+- [ ] Webhook Supabase configuré sur `UPDATE` de tasks
+- [ ] Assignation d'une tâche → notification insérée dans la table `notifications`
+- [ ] Logs visibles : `az functionapp logs tail --name fn-taskflow --resource-group rgtaskflow`
