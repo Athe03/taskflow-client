@@ -152,3 +152,23 @@ const task = await createTask(PROJECT_ID, {
 - **Déploiement final** : Les 4 fonctions sont désormais opérationnelles et visibles sur Azure.
   ![alt text](journal-img/image-11.png)
   ![alt text](journal-img/image-12.png)
+
+## 🚀 Phase 5 : Finalisation & Tests Avancés
+
+**Objectif** : Valider l'ensemble de la logique métier serverless et la sécurité des endpoints.
+
+- **Problèmes rencontrés & Résolutions** :
+  - **Exposition des URLs** : Lors du premier déploiement, les URLs n'étaient pas correctement exposées. Une fois le problème de configuration réglé, les endpoints sont devenus accessibles.
+  - **Manage Members** : Le test de retrait échouait car le projet utilisé pour le test n'avait pas de "owner" défini. Nous avons corrigé cela en passant l'utilisateur en tant que `owner` pour valider les règles de gestion (un owner ne peut pas se retirer lui-même et un simple membre ne peut pas gérer les membres).
+
+* Validation — Phase 5
+
+- [x] **4 fonctions déployées** : Visibles et actives dans le portail Azure.
+- [x] **`validate-task`** : Rejette correctement les titres trop courts, les dates passées et les assignations à des non-membres.
+      ![alt text](journal-img/image-13.png)
+- [x] **`project-stats`** : Retourne des données cohérentes (taux de complétion, tâches par statut, membres actifs).
+      ![alt text](journal-img/image-14.png)
+- [x] **`manage-members`** :
+  - Un simple membre reçoit une `403 Forbidden`.
+  - Le `owner` ne peut pas être retiré du projet (sécurité logicielle).
+    ![alt text](journal-img/image-15.png)
