@@ -138,11 +138,17 @@ const task = await createTask(PROJECT_ID, {
 
   - **Nom du Stockage** : Le nom de compte de stockage `stgtaskflow` était déjà utilisé globalement. Nous avons opté pour `stgtaskflow1`.
 
+  - **Programmation v4 & Modules** : Suite à des problèmes de compatibilité des modules (ES Modules) qui ne fonctionnaient pas en v3, nous avons migré vers le modèle de programmation **Azure Functions v4**. Ce changement a permis de stabiliser le déploiement de nos fonctions via l'approche "App".
+
 * Validation — Phase 4
 
-- [ ] Compte Resend créé, clé API dans `.env` et dans les settings Azure
-- [ ] Function App `fn-taskflow` déployé (visible dans le portail Azure)
-- [ ] Webhook Supabase configuré sur `UPDATE` de tasks
-- [ ] Assignation d'une tâche → notification insérée dans la table `notifications`
-- [ ] Logs visibles : `az functionapp logs tail --name fn-taskflow --resource-group rgtaskflow`
+- [x] Compte Resend créé, clé API dans `.env` et dans les settings Azure
+- [x] Function App `fn-taskflow` déployé (visible dans le portail Azure)
+- [x] Webhook Supabase configuré sur `UPDATE` de tasks
+- [x] Assignation d'une tâche → notification insérée dans la table `notifications`
+- [x] Logs visibles : `az functionapp logs tail --name fn-taskflow --resource-group rgtaskflow`
       ![alt text](journal-img/image-10.png)
+
+- **Déploiement final** : Les 4 fonctions sont désormais opérationnelles et visibles sur Azure.
+  ![alt text](journal-img/image-11.png)
+  ![alt text](journal-img/image-12.png)

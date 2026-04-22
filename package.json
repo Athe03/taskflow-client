@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node test-rls.js",
     "alice": "node alice-watch.js",
-    "bob": "node bob-actions.js"
+    "bob": "node bob-actions.js",
+    "token": "node get-token.js"
   },
   "repository": {
     "type": "git",
