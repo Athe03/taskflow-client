@@ -183,6 +183,7 @@ const task = await createTask(PROJECT_ID, {
 
 - **Problèmes rencontrés & Résolutions** :
   - **Correction URL Stats** : Une erreur de frappe dans le script d'intégration utilisait `projectstats` au lieu de `project-stats`. La correction de l'URL vers l'endpoint Azure a permis de récupérer les métriques finales.
+  - **Déclenchement Notifications** : Le Webhook Supabase ne se déclenchait que lors d'un changement effectif de la valeur de la colonne `assigned_to`. Pour valider le flux complet, nous avons dû mofidier les scripts de test pour qu'ils effectuent une mise à jour réelle de l'assignation (et non une simple ré-écriture de la même valeur).
 
 * Validation — Phase 6
 
