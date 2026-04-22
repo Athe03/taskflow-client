@@ -15,17 +15,13 @@ if (tasksError) console.error('Erreur selection tasks:', tasksError.message)
 console.log('Tasks Alice:', tasks?.length)
 
 // Test 3 : Alice ne peut pas modifier la tâche de Bob (assigned_to Bob)
-// Bob UID: 4e2a1f96-c92a-47c3-9c04-ff12edcc6501
 const { data: bobTask } = await supabase.from('tasks')
     .select('id')
     .eq('assigned_to', '4e2a1f96-c92a-47c3-9c04-ff12edcc6501')
     .maybeSingle()
 
 if (bobTask) {
-    const { data: updatedData, error: updateError } = await supabase.from('tasks')
-        .update({ title: 'Hacked' })
-        .eq('id', bobTask.id)
-        .select() // On demande le retour des données pour vérifier si l'update a eu lieu
+    const { data: updatedData, error: updateError } = await supabase.from('tasks').update({ title: 'Hacked' }).eq('id', bobTask.id).select()
 
     if (updateError) {
         console.log('Modif refusée (Erreur):', updateError.message)

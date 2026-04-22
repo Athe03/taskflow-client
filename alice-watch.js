@@ -1,5 +1,6 @@
 import { signIn } from './auth.js'
 import { subscribeToProject } from './realtime.js'
+
 await signIn('o.glaneux@gmail.com', 'M_zgz46e/Q2#sDw')
 const PROJECT_ID = '28830f41-f7cc-4315-909b-53afe1456585'
 const unsub = subscribeToProject(PROJECT_ID, {

@@ -7,8 +7,7 @@ export async function signUp(email, password, username, fullName) {
     })
     if (error) throw error
     if (data.user) {
-        await supabase.from('profiles')
-        .insert({ id: data.user.id, username, full_name: fullName })
+        await supabase.from('profiles').insert({ id: data.user.id, username, full_name: fullName })
     }
     return data
 }
