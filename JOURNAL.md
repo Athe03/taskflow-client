@@ -81,6 +81,7 @@ SELECT 'tasks', count(*) from tasks;
   - **URL Supabase** : L'URL dans le fichier `.env` contenait `/rest/v1/`, ce qui provoquait des erreurs de connexion. Nous l'avons corrigée en `https://secret.supabase.co`.
   - **Support ES Modules** : Erreur lors de l'exécution des scripts avec `import`. Nous avons ajouté `"type": "module"` dans le `package.json`.
   - **Scripts NPM** : Mise à jour du script de test : `"test": "node test-rls.js"`.
+  - **Génération UUID Projet** : Nous avons ajouté une génération aléatoire pour l'UUID du projet (`gen_random_uuid()`) car celui-ci n'était pas retrouvé correctement lors des insertions liées s'il n'était pas généré explicitement au préalable.
   - **Boucle Infinie RLS** : Une erreur de récursion infinie est survenue sur la table `project_members`. Nous avons résolu le problème en désactivant temporairement le RLS pour cette table spécifique
     ![alt text](journal-img/image-4.png)
     ![alt text](journal-img/image-5.png)
@@ -99,6 +100,8 @@ SELECT 'tasks', count(*) from tasks;
 **Objectif** : Synchronisation instantanée entre les membres d'un projet.
 
 - **Mise en œuvre** : Activation de `supabase_realtime` pour les tables `tasks` et `comments`.
+- **Problème rencontré** : Initialement, au moment de la création via les scripts de test, les tâches n'étaient assignées à personne, ce qui empêchait de vérifier correctement les flux de travail.
+- **Résolution** : Mise à jour de `bob-actions.js` pour inclure l'assignation automatique dès la création.
 - **Validation** :
   - Lancement de `node alice-watch.js` pour écouter les changements.
   - Lancement de `node bob-actions.js` pour effectuer des modifications.
@@ -111,7 +114,7 @@ Mise à jour de `bob-actions.js` pour inclure l'assignation automatique des tâc
 const task = await createTask(PROJECT_ID, {
   title: "Implémenter le Realtime",
   priority: "high",
-  assignedTo: BOB_ID, // Attribution explicite à Bob
+  assignedTo: BOB_ID, // Attribution explicite à Bob pour corriger l'absence d'assignation
 });
 ```
 
@@ -146,6 +149,7 @@ const task = await createTask(PROJECT_ID, {
 - [x] Function App `fn-taskflow` déployé (visible dans le portail Azure)
 - [x] Webhook Supabase configuré sur `UPDATE` de tasks
 - [x] Assignation d'une tâche → notification insérée dans la table `notifications`
+      ![alt text](journal-img/image-16.png)
 - [x] Logs visibles : `az functionapp logs tail --name fn-taskflow --resource-group rgtaskflow`
       ![alt text](journal-img/image-10.png)
 
@@ -172,3 +176,21 @@ const task = await createTask(PROJECT_ID, {
   - Un simple membre reçoit une `403 Forbidden`.
   - Le `owner` ne peut pas être retiré du projet (sécurité logicielle).
     ![alt text](journal-img/image-15.png)
+
+# 🏁 Phase 6 : Validation Finale — Intégration bout-en-bout
+
+**Objectif** : Vérifier que tous les composants (Auth, RLS, Realtime, Azure Functions) collaborent sans friction.
+
+- **Problèmes rencontrés & Résolutions** :
+  - **Correction URL Stats** : Une erreur de frappe dans le script d'intégration utilisait `projectstats` au lieu de `project-stats`. La correction de l'URL vers l'endpoint Azure a permis de récupérer les métriques finales.
+
+* Validation — Phase 6
+
+- [x] **Script d'intégration** : Le script `integration.js` s'exécute sans erreur du début à la fin.
+- [x] **Complétion** : Atteint les 100% après la mise à jour de toutes les tâches via le script.
+- [x] **Événements Realtime** : Alice reçoit exactement les 6 événements attendus (2 vagues de 3 tâches).
+- [x] **Notifications** : La table `notifications` contient bien les logs d'assignation pour Bob.
+- [x] **Performance Azure** : Les fonctions répondent en moins de 500ms, assurant une synchronisation fluide.
+
+---
+*Projet réalisé dans un cadre pédagogique (TP Master 2 — Serverless).*
