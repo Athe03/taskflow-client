@@ -43,27 +43,64 @@ async function run() {
         const res = await fetch(`${BASE}/validate-task`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${aliceSession.access_token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ project_id: projectId, title, priority: 'medium'
+            body: JSON.stringify({
+                project_id: projectId,
+                title,
+                priority: 'medium'
             })
         })
         const { task } = await res.json()
         if (task) createdTasks.push(task)
     }
     console.log(`✅ ${createdTasks.length} tâches créées via Azure Function`)
+
+    // 3bis. Assigner les tâches à Bob pour déclencher les notifications d'assignation
+    for (const task of createdTasks) {
+        const { data: assignedTasks, error: assignError } = await aliceClient
+            .from('tasks')
+            .update({ assigned_to: bobUser.id })
+            .eq('id', task.id)
+            .select('id')
+        if (assignError || !assignedTasks?.length) {
+            throw new Error(`Assignation échouée pour la tâche ${task.id}: ${assignError?.message ?? 'aucune ligne modifiée'}`)
+        }
+    }
+    console.log('✅ Tâches assignées à Bob (notifications attendues)')
     
     // 4. Alice surveille en Realtime
     let rtCount = 0
     const channel = aliceClient.channel(`project:${projectId}`).on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'tasks',
         filter: `project_id=eq.${projectId}`
-    }, (p) => { rtCount++; console.log(` 📡 [RT] ${p.old.status} → ${p.new.status}`) }).subscribe()
-    await new Promise(r => setTimeout(r, 1000))
+    }, (p) => { rtCount++; console.log(` 📡 [RT] ${p.old.status} → ${p.new.status}`) })
+    await new Promise((resolve, reject) => {
+        channel.subscribe((status) => {
+            if (status === 'SUBSCRIBED') return resolve()
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                return reject(new Error(`Abonnement Realtime impossible: ${status}`))
+            }
+        })
+    })
     
     // 5. Bob fait progresser les tâches
     for (const task of createdTasks) {
-        await bobClient.from('tasks').update({ status: 'in_progress' }).eq('id', task.id)
+        const { data: startedTasks, error: startError } = await bobClient
+            .from('tasks')
+            .update({ status: 'in_progress' })
+            .eq('id', task.id)
+            .select('id')
+        if (startError || !startedTasks?.length) {
+            throw new Error(`Bob ne peut pas passer la tâche ${task.id} en cours: ${startError?.message ?? 'aucune ligne modifiée'}`)
+        }
         await new Promise(r => setTimeout(r, 300))
-        await bobClient.from('tasks').update({ status: 'done' }).eq('id', task.id)
+        const { data: doneTasks, error: doneError } = await bobClient
+            .from('tasks')
+            .update({ status: 'done' })
+            .eq('id', task.id)
+            .select('id')
+        if (doneError || !doneTasks?.length) {
+            throw new Error(`Bob ne peut pas terminer la tâche ${task.id}: ${doneError?.message ?? 'aucune ligne modifiée'}`)
+        }
         await new Promise(r => setTimeout(r, 300))
     }
     console.log('✅ Bob a terminé toutes les tâches')
